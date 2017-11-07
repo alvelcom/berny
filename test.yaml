@@ -1,0 +1,7 @@
+policies:
+- name: kubelet
+  verify:
+  - gce: {}
+  produce:
+  - name: kubelet
+    pki: {}
