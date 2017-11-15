@@ -1,32 +1,26 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 
-	"gopkg.in/yaml.v2"
-
-	"github.com/alvelcom/redout/config"
-	"github.com/alvelcom/redout/probes"
-	"github.com/alvelcom/redout/producers"
+	"github.com/alvelcom/redoubt/cmd/harvest"
+	"github.com/alvelcom/redoubt/cmd/serve"
 )
 
 func init() {
-	probes.Register(config.ProbeCasts)
-	producers.Register(config.ProducerCasts)
+	log.SetFlags(0)
 }
 
 func main() {
-	data, err := ioutil.ReadFile("test.yaml")
-	if err != nil {
-		log.Fatal("Can't read config file:", err)
+	if len(os.Args) < 2 {
+		log.Fatalf("Command name is expected")
 	}
 
-	var c config.Config
-	err = yaml.UnmarshalStrict(data, &c)
-	if err != nil {
-		log.Fatal("Can't unmarshal config file: ", err)
+	switch os.Args[1] {
+	case "serve":
+		serve.Main(os.Args[2:])
+	case "harvest":
+		harvest.Main(os.Args[2:])
 	}
-
-	log.Printf("Config: %+v", c)
 }
