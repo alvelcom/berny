@@ -43,8 +43,16 @@ func Main(args []string) {
 
 	log.Printf("Config: %+v", c)
 
+	policies, err := castPolicies(c.Policies)
+	if err != nil {
+		log.Fatal("Can't initialize policies: ", err)
+	}
+	log.Printf("Policies: %#v", policies)
+}
+
+func castPolicies(ps []config.Policy) ([]Policy, error) {
 	policies := []Policy{}
-	for _, p := range c.Policies {
+	for _, p := range ps {
 		policy := Policy{
 			Name:    p.Name,
 			Verify:  []probes.Probe{},
@@ -53,21 +61,18 @@ func Main(args []string) {
 		for _, probe := range p.Verify {
 			probe, err := probes.New(probe)
 			if err != nil {
-				log.Println(err)
-				return
+				return nil, err
 			}
 			policy.Verify = append(policy.Verify, probe)
 		}
 		for _, producer := range p.Produce {
 			producer, err := producers.New(producer)
 			if err != nil {
-				log.Println(err)
-				return
+				return nil, err
 			}
 			policy.Produce = append(policy.Produce, producer)
 		}
 		policies = append(policies, policy)
 	}
-
-	log.Printf("Policies: %#v", policies)
+	return policies, nil
 }
