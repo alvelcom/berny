@@ -3,36 +3,36 @@ package api
 import "encoding/json"
 
 type Request struct {
-	ClientVersion int    `json:"client-version"`
-	ServerCookie  string `json:"server-cookie,omitempty"`
+	ClientVersion int    `json:"client_version"`
+	ServerCookie  string `json:"server_cookie,omitempty"`
 
-	MachineInfo MachineInfo `json:"machine-info"`
-	Returnings  []Returning
+	MachineInfo MachineInfo `json:"machine_info"`
+	Returnings  []Returning `json:"returninds"`
 }
 
 type MachineInfo struct {
-	IPs  []string
-	FQDN string
+	IPs  []string `json:"ips"`
+	FQDN string   `json:"fqdn"`
 
 	// Optional fields, useful for templates and verification
-	Host   string `json:",omitempty"`
-	Domain string `json:",omitempty"`
+	Host   string `json:"host,omitempty"`
+	Domain string `json:"domain,omitempty"`
 	// Host+Domain == FQDN
 
-	Cluster  string `json:",omitempty"`
-	NodeType string `json:"node-type,omitempty"`
-	Id       string `json:",omitempty"`
+	Cluster  string `json:"cluster,omitempty"`
+	NodeType string `json:"node_type,omitempty"`
+	Id       string `json:"id,omitempty"`
 	// Usually Cluster+NodeType+Id == Host
 
 	// Cloud-specific
-	Provider string `json:",omitempty"` // aws, gcp or your own rasberry under the desk
-	Region   string `json:",omitempty"`
+	Provider string `json:"provider,omitempty"` // aws, gcp or your own rasberry under the desk
+	Region   string `json:"region,omitempty"`
 
-	City    string `json:",omitempty"`
-	Country string `json:",omitempty"`
-	Geo     string `json:",omitempty"` // free format
+	City    string `json:"city,omitempty"`
+	Country string `json:"country,omitempty"`
+	Geo     string `json:"geo,omitempty"` // free format
 
-	Extra map[string]string `json:",omitempty"`
+	Extra map[string]string `json:"extra,omitempty"`
 }
 
 type Returning struct {
@@ -42,29 +42,29 @@ type Returning struct {
 }
 
 type Response struct {
-	ServerVersion int    `json:"server-version"`
-	ServerCookie  string `json:"server-cookie"`
+	ServerVersion int    `json:"server_version"`
+	ServerCookie  string `json:"server_cookie"`
 
-	Errors   []Error
-	Tasks    []Task
-	Products []Product
+	Errors   []Error   `json:"errors"`
+	Tasks    []Task    `json:"tasks"`
+	Products []Product `json:"products"`
 }
 
 type Error struct {
-	Type    string
-	Message string
+	Type    string `json:"type"`
+	Message string `json:"message"`
 }
 
 type Task struct {
-	Name []string
-	Type string
-	Body json.RawMessage
+	Name []string        `json:"name"`
+	Type string          `json:"type"`
+	Body json.RawMessage `json:"body"`
 }
 
 type Product struct {
-	Name []string
-	Mask int
-	Body string
+	Name []string `json:"name"`
+	Mask int      `json:"mask"`
+	Body string   `json:"body"`
 }
 
 func (ci *MachineInfo) Verify() error {

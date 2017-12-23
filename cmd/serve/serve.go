@@ -20,9 +20,10 @@ var (
 		`Configuration file to use`)
 )
 
-func init() {
-	probes.Register()
-	producers.Register()
+type Policy struct {
+	Name    string
+	Verify  []probes.Probe
+	Produce []producers.Producer
 }
 
 func Main(args []string) {
@@ -41,4 +42,32 @@ func Main(args []string) {
 	}
 
 	log.Printf("Config: %+v", c)
+
+	policies := []Policy{}
+	for _, p := range c.Policies {
+		policy := Policy{
+			Name:    p.Name,
+			Verify:  []probes.Probe{},
+			Produce: []producers.Producer{},
+		}
+		for _, probe := range p.Verify {
+			probe, err := probes.New(probe)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			policy.Verify = append(policy.Verify, probe)
+		}
+		for _, producer := range p.Produce {
+			producer, err := producers.New(producer)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			policy.Produce = append(policy.Produce, producer)
+		}
+		policies = append(policies, policy)
+	}
+
+	log.Printf("Policies: %#v", policies)
 }

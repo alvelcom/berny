@@ -1,7 +1,10 @@
+backends:
+- name: test
+  vault: {}
 policies:
 - name: kubelet
   verify:
-  - gce: {}
+  - gcp: {}
   produce:
   - name: kubelet
     pki: {}

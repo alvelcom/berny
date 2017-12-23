@@ -1,41 +1,35 @@
 package probes
 
 import (
-	"context"
-	"fmt"
+	"errors"
 
 	"github.com/alvelcom/redoubt/config"
 )
 
-func Register() {
-	config.ProbeCasts["gce"] = castGCE
+var (
+	ErrBadType = errors.New("probes: bad type")
+)
+
+type Probe interface {
+	Type() string
 }
 
-// GCE
-type GCE struct {
-}
-
-func castGCE(c *config.Probe, unmarshal func(interface{}) error) error {
-	var t struct {
-		Name string
-		GCE  *GCE `yaml:"gce"`
+func New(c config.Probe) (Probe, error) {
+	switch c.Type {
+	case "gcp":
+		return newGCP(c)
+	default:
+		return nil, ErrBadType
 	}
-	if err := unmarshal(&t); err != nil {
-		return err
-	}
-	c.Name = t.Name
-	c.Probe = t.GCE
-	return nil
 }
 
-func (p *GCE) Type() string {
-	return "gce"
+type gcp struct {
 }
 
-func (p *GCE) Test(ctx context.Context) error {
-	return nil
+func newGCP(c config.Probe) (Probe, error) {
+	return &gcp{}, nil
 }
 
-func (p *GCE) String() string {
-	return fmt.Sprintf("%#v", *p)
+func (g *gcp) Type() string {
+	return "gcp"
 }

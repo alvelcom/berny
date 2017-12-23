@@ -1,15 +1,15 @@
 package producers
 
 import (
-	"context"
-	"fmt"
+	"errors"
 
 	"github.com/alvelcom/redoubt/config"
 )
 
-func Register() {
-	config.ProducerCasts["pki"] = castPKI
-	config.ProducerCasts["secret"] = castSecret
+var ErrBadProducerType = errors.New("producers: bad type")
+
+type Producer interface {
+	Type() string
 }
 
 // PKI
@@ -25,64 +25,23 @@ type CSR struct {
 	AltIPs     []string `yaml:"alt-ip"`
 }
 
-func castPKI(c *config.Producer, unmarshal func(interface{}) error) error {
-	var t struct {
-		Name string
-
-		PKI *PKI `yaml:"pki"`
-	}
-	if err := unmarshal(&t); err != nil {
-		return err
-	}
-	if t.PKI == nil {
-		return config.ErrCantUnmarshal
-	}
-	c.Name = t.Name
-	c.Producer = t.PKI
-	return nil
-}
-
-func (p *PKI) Type() string {
-	return "pki"
-}
-
-func (p *PKI) Test(ctx context.Context) error {
-	return nil
-}
-
-func (p *PKI) String() string {
-	return fmt.Sprintf("%#v", *p)
-}
-
 // Secret
 type Secret struct {
 }
 
-func castSecret(c *config.Producer, unmarshal func(interface{}) error) error {
-	var t struct {
-		Name string
-
-		Secret *Secret `yaml:"secret"`
+func New(c config.Producer) (Producer, error) {
+	switch c.Type {
+	case "pki":
+		return newPKI(c)
+	default:
+		return nil, ErrBadProducerType
 	}
-	if err := unmarshal(&t); err != nil {
-		return err
-	}
-	if t.Secret == nil {
-		return config.ErrCantUnmarshal
-	}
-	c.Name = t.Name
-	c.Producer = t.Secret
-	return nil
 }
 
-func (p *Secret) Type() string {
-	return "secret"
+func newPKI(c config.Producer) (Producer, error) {
+	return &PKI{}, nil
 }
 
-func (p *Secret) Test(ctx context.Context) error {
-	return nil
-}
-
-func (p *Secret) String() string {
-	return fmt.Sprintf("%#v", *p)
+func (p *PKI) Type() string {
+	return "pki"
 }
