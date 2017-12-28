@@ -1,15 +1,20 @@
 package serve
 
 import (
+	"encoding/json"
+	"errors"
 	"flag"
 	"io/ioutil"
 	"log"
+	"net/http"
 
 	"gopkg.in/yaml.v2"
 
 	"github.com/alvelcom/redoubt/config"
 	"github.com/alvelcom/redoubt/probes"
 	"github.com/alvelcom/redoubt/producers"
+
+	"github.com/alvelcom/redoubt/api"
 )
 
 var fs = flag.NewFlagSet("redoubt serve", flag.ExitOnError)
@@ -48,6 +53,9 @@ func Main(args []string) {
 		log.Fatal("Can't initialize policies: ", err)
 	}
 	log.Printf("Policies: %#v", policies)
+
+	http.Handle("/v1/harvest", &harvestHandler{policies})
+	log.Fatal(http.ListenAndServe(*listenAddr, nil))
 }
 
 func castPolicies(ps []config.Policy) ([]Policy, error) {
@@ -58,6 +66,7 @@ func castPolicies(ps []config.Policy) ([]Policy, error) {
 			Verify:  []probes.Probe{},
 			Produce: []producers.Producer{},
 		}
+
 		for _, probe := range p.Verify {
 			probe, err := probes.New(probe)
 			if err != nil {
@@ -65,6 +74,7 @@ func castPolicies(ps []config.Policy) ([]Policy, error) {
 			}
 			policy.Verify = append(policy.Verify, probe)
 		}
+
 		for _, producer := range p.Produce {
 			producer, err := producers.New(producer)
 			if err != nil {
@@ -72,7 +82,39 @@ func castPolicies(ps []config.Policy) ([]Policy, error) {
 			}
 			policy.Produce = append(policy.Produce, producer)
 		}
+
 		policies = append(policies, policy)
 	}
 	return policies, nil
+}
+
+// A bit of middleware sugar
+func ReadJSON(r *http.Request, j interface{}) error {
+	if r.Body == nil {
+		return errors.New("read json: no body")
+	}
+	return json.NewDecoder(r.Body).Decode(j)
+}
+
+func WriteJSON(w http.ResponseWriter, j interface{}) {
+	w.Header()["Content-Type"] = []string{"application/json; charset=utf-8"}
+	if err := json.NewEncoder(w).Encode(j); err != nil {
+		log.Print("WriteJSON failed: ", err)
+	}
+}
+
+type harvestHandler struct {
+	policies []Policy
+}
+
+func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var req api.Request
+	if err := ReadJSON(r, &req); err != nil {
+		log.Print("Bad request: ", err)
+		WriteJSON(w, map[string]string{"error": "bad"})
+		return
+	}
+
+	WriteJSON(w, req)
+
 }

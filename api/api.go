@@ -7,7 +7,7 @@ type Request struct {
 	ServerCookie  string `json:"server_cookie,omitempty"`
 
 	MachineInfo MachineInfo `json:"machine_info"`
-	Returnings  []Returning `json:"returninds"`
+	Returnings  []Returning `json:"returnings"`
 }
 
 type MachineInfo struct {
@@ -36,18 +36,18 @@ type MachineInfo struct {
 }
 
 type Returning struct {
-	Name []string
-	Type string
-	Body json.RawMessage
+	Name []string        `json:"name"`
+	Type string          `json:"type"`
+	Body json.RawMessage `json:"body"`
 }
 
 type Response struct {
 	ServerVersion int    `json:"server_version"`
 	ServerCookie  string `json:"server_cookie"`
 
-	Errors   []Error   `json:"errors"`
-	Tasks    []Task    `json:"tasks"`
-	Products []Product `json:"products"`
+	Errors   []Error   `json:"errors,omitempty"`
+	Tasks    []Task    `json:"tasks,omitempty"`
+	Products []Product `json:"products,omitempty"`
 }
 
 type Error struct {
