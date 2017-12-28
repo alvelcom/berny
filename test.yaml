@@ -7,4 +7,10 @@ policies:
   - gcp: {}
   produce:
   - name: kubelet
-    pki: {}
+    pki:
+      backend: "123"
+      crt:
+          common-name: 123
+          alt-dns:
+              - 123
+              - "def"
