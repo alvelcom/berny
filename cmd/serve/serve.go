@@ -15,6 +15,7 @@ import (
 	"github.com/alvelcom/redoubt/producers"
 
 	"github.com/alvelcom/redoubt/api"
+	inter "github.com/alvelcom/redoubt/interpolation"
 )
 
 var fs = flag.NewFlagSet("redoubt serve", flag.ExitOnError)
@@ -115,6 +116,10 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, req)
+	env := inter.Env{
+		Client: req.MachineInfo,
+	}
 
+	var resp api.Response
+	WriteJSON(w, env)
 }

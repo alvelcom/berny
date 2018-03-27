@@ -10,8 +10,7 @@ import (
 )
 
 type Env struct {
-	Client *api.MachineInfo
-	Vars   map[string]interface{}
+	Client api.MachineInfo
 }
 
 type String interface {
