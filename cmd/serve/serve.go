@@ -120,6 +120,6 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Client: req.MachineInfo,
 	}
 
-	var resp api.Response
+	//var resp api.Response
 	WriteJSON(w, env)
 }
