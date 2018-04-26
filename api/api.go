@@ -6,8 +6,10 @@ type Request struct {
 	ClientVersion int    `json:"client_version"`
 	ServerCookie  string `json:"server_cookie,omitempty"`
 
-	MachineInfo MachineInfo `json:"machine_info"`
-	Returnings  []Returning `json:"returnings"`
+	Machine *MachineInfo `json:"machine,omitempty"`
+	User    *UserInfo    `json:"user,omitempty"`
+
+	Trophies []Trophy `json:"trophies,omitempty"`
 }
 
 type MachineInfo struct {
@@ -35,7 +37,13 @@ type MachineInfo struct {
 	Extra map[string]string `json:"extra,omitempty"`
 }
 
-type Returning struct {
+type UserInfo struct {
+	EMail string `json:"email"`
+
+	Extra map[string]string `json:"extra,omitempty"`
+}
+
+type Trophy struct {
 	Name []string        `json:"name"`
 	Type string          `json:"type"`
 	Body json.RawMessage `json:"body"`

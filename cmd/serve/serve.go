@@ -7,15 +7,15 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/alvelcom/redoubt/api"
 	"github.com/alvelcom/redoubt/config"
+	inter "github.com/alvelcom/redoubt/interpolation"
 	"github.com/alvelcom/redoubt/probes"
 	"github.com/alvelcom/redoubt/producers"
-
-	"github.com/alvelcom/redoubt/api"
-	inter "github.com/alvelcom/redoubt/interpolation"
 )
 
 var fs = flag.NewFlagSet("redoubt serve", flag.ExitOnError)
@@ -98,7 +98,7 @@ func ReadJSON(r *http.Request, j interface{}) error {
 }
 
 func WriteJSON(w http.ResponseWriter, j interface{}) {
-	w.Header()["Content-Type"] = []string{"application/json; charset=utf-8"}
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(j); err != nil {
 		log.Print("WriteJSON failed: ", err)
 	}
@@ -106,6 +106,10 @@ func WriteJSON(w http.ResponseWriter, j interface{}) {
 
 type harvestHandler struct {
 	policies []Policy
+}
+
+func printJSON(j interface{}) error {
+	return json.NewEncoder(os.Stdout).Encode(j)
 }
 
 func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -117,9 +121,23 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	env := inter.Env{
-		Client: req.MachineInfo,
+		Machine: req.Machine,
+		User:    req.User,
 	}
 
-	//var resp api.Response
-	WriteJSON(w, env)
+	printJSON(env)
+
+	var resp api.Response
+	for _, policy := range h.policies {
+		for _, producer := range policy.Produce {
+			t, p, err := producer.Produce(env)
+			if err != nil {
+				WriteJSON(w, map[string]string{"error": err.Error()})
+				return
+			}
+			resp.Tasks = append(resp.Tasks, t...)
+			resp.Products = append(resp.Products, p...)
+		}
+	}
+	WriteJSON(w, resp)
 }

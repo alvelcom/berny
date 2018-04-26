@@ -7,7 +7,7 @@ import (
 )
 
 type Client interface {
-	Harvest(r []Returning) ([]Product, []Task, []Error, error)
+	Harvest(r []Gift) ([]Product, []Task, []Error, error)
 }
 
 type httpClient struct {
@@ -25,13 +25,13 @@ func NewClient(c *http.Client, url string, info MachineInfo) (Client, error) {
 	}, nil
 }
 
-func (hc *httpClient) Harvest(r []Returning) (p []Product, t []Task, e []Error, err error) {
+func (hc *httpClient) Harvest(g []Gift) (p []Product, t []Task, e []Error, err error) {
 	var b bytes.Buffer
 	if err = json.NewEncoder(&b).Encode(Request{
 		ClientVersion: 0,
 		ServerCookie:  hc.serverCookie,
-		MachineInfo:   hc.info,
-		Returnings:    r,
+		Machine:       &hc.info,
+		Gifts:         g,
 	}); err != nil {
 		return
 	}

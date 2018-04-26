@@ -3,6 +3,7 @@ package producers
 import (
 	"errors"
 
+	"github.com/alvelcom/redoubt/api"
 	"github.com/alvelcom/redoubt/config"
 	inter "github.com/alvelcom/redoubt/interpolation"
 )
@@ -11,6 +12,7 @@ var ErrBadProducerType = errors.New("producers: bad type")
 
 type Producer interface {
 	Type() string
+	Produce(inter.Env) ([]api.Task, []api.Product, error)
 }
 
 // PKI
@@ -74,4 +76,9 @@ func newPKI(c config.Producer) (Producer, error) {
 
 func (p *PKI) Type() string {
 	return "pki"
+}
+
+func (p *PKI) Produce(inter.Env) ([]api.Task, []api.Product, error) {
+
+	return nil, []api.Product{{}}, nil
 }
