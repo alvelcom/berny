@@ -72,7 +72,7 @@ type Task struct {
 type Product struct {
 	Name []string `json:"name"`
 	Mask int      `json:"mask"`
-	Body string   `json:"body"`
+	Body []byte   `json:"body"`
 }
 
 func (ci *MachineInfo) Verify() error {

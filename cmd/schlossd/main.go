@@ -1,4 +1,4 @@
-package serve
+package main
 
 import (
 	"encoding/json"
@@ -18,11 +18,10 @@ import (
 	"github.com/alvelcom/redoubt/producers"
 )
 
-var fs = flag.NewFlagSet("redoubt serve", flag.ExitOnError)
 var (
-	listenAddr = fs.String("listen", "0.0.0.0:2326",
+	listenAddr = flag.String("listen", "0.0.0.0:2326",
 		`Listen for incomming request there`)
-	configFile = fs.String("config", "test.yaml",
+	configFile = flag.String("config", "test.yaml",
 		`Configuration file to use`)
 )
 
@@ -32,8 +31,9 @@ type Policy struct {
 	Produce []producers.Producer
 }
 
-func Main(args []string) {
-	fs.Parse(args)
+func main() {
+	flag.Parse()
+	log := log.New(os.Stderr, "", log.LstdFlags)
 	log.Print(*listenAddr)
 
 	data, err := ioutil.ReadFile(*configFile)
@@ -47,15 +47,12 @@ func Main(args []string) {
 		log.Fatal("Can't unmarshal config file: ", err)
 	}
 
-	log.Printf("Config: %+v", c)
-
 	policies, err := castPolicies(c.Policies)
 	if err != nil {
 		log.Fatal("Can't initialize policies: ", err)
 	}
-	log.Printf("Policies: %#v", policies)
 
-	http.Handle("/v1/harvest", &harvestHandler{policies})
+	http.Handle("/v1/harvest", &harvestHandler{policies, log})
 	log.Fatal(http.ListenAndServe(*listenAddr, nil))
 }
 
@@ -106,6 +103,7 @@ func WriteJSON(w http.ResponseWriter, j interface{}) {
 
 type harvestHandler struct {
 	policies []Policy
+	log      *log.Logger
 }
 
 func printJSON(j interface{}) error {
@@ -120,12 +118,12 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	env := inter.Env{
+	env := &inter.Env{
 		Machine: req.Machine,
 		User:    req.User,
 	}
 
-	printJSON(env)
+	h.log.Printf("%s: harvest", r.RemoteAddr)
 
 	var resp api.Response
 	for _, policy := range h.policies {

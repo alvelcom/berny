@@ -7,6 +7,10 @@ policies:
   verify:
   - gcp: {}
   produce:
+  - name: file
+    file:
+      abc: asset/qq
+      qqq: asset/qq2
   - name: kubelet
     pki:
       backend: "123"
