@@ -4,9 +4,9 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"github.com/alvelcom/redoubt/api"
-	"github.com/alvelcom/redoubt/config"
-	inter "github.com/alvelcom/redoubt/interpolation"
+	"github.com/alvelcom/redoubt/pkg/api"
+	"github.com/alvelcom/redoubt/pkg/config"
+	"github.com/alvelcom/redoubt/pkg/inter"
 )
 
 var ErrBadProducerType = errors.New("producers: bad type")

@@ -4,14 +4,18 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"strings"
 
-	"github.com/alvelcom/redoubt/api"
+	"github.com/alvelcom/redoubt/pkg/api"
 )
 
 var (
 	fServer = flag.String("server", "http://127.0.0.1:2326",
-		"Server to connect to")
+		`Server to connect to`)
+	fDir = flag.String("dir", "/var/run/schloss",
+		`Directory for products`)
 	info api.MachineInfo
 )
 
@@ -47,10 +51,31 @@ func main() {
 	for _, task := range tasks {
 		log.Printf("- %#v", task)
 	}
-	log.Printf("Products:")
-	for _, prod := range prods {
-		log.Printf("- %#v", prod)
+	log.Printf("Saving products:")
+	if err := saveProducts(*fDir, prods); err != nil {
+		log.Printf("saving error: %s", err)
+		return
 	}
+}
+
+func saveProducts(dir string, ps []api.Product) error {
+	for _, p := range ps {
+		name := path.Join(p.Name...)
+		log.Printf("- %s (%04o)", name, p.Mask)
+
+		name = path.Join(dir, name)
+		fd, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+			os.FileMode(p.Mask))
+		if err != nil {
+			return err
+		}
+
+		if _, err := fd.Write(p.Body); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func prepareFlags() {

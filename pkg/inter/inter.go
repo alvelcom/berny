@@ -1,4 +1,4 @@
-package interpolation
+package inter
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	//aparser "github.com/mattn/anko/parser"
 	//avm "github.com/mattn/anko/vm"
 
-	"github.com/alvelcom/redoubt/api"
+	"github.com/alvelcom/redoubt/pkg/api"
 )
 
 type Env struct {

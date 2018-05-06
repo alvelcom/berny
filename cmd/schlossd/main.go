@@ -11,11 +11,11 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/alvelcom/redoubt/api"
-	"github.com/alvelcom/redoubt/config"
-	inter "github.com/alvelcom/redoubt/interpolation"
-	"github.com/alvelcom/redoubt/probes"
-	"github.com/alvelcom/redoubt/producers"
+	"github.com/alvelcom/redoubt/pkg/api"
+	"github.com/alvelcom/redoubt/pkg/config"
+	"github.com/alvelcom/redoubt/pkg/inter"
+	"github.com/alvelcom/redoubt/pkg/probes"
+	"github.com/alvelcom/redoubt/pkg/producers"
 )
 
 var (
