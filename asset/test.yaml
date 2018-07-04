@@ -1,7 +1,9 @@
 # vim: ts=2 sw=2 et
 backends:
 - name: test
-  vault: {}
+  static-x509:
+    key: 123.pem
+    cert: 1234.pem
 policies:
 - name: kubelet
   verify:

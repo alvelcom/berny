@@ -75,7 +75,7 @@ func (p *Probe) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if len(v) != 1 {
-		return ErrBadProducer
+		return ErrBadProbe
 	}
 
 	for type_, value := range v {

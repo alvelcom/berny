@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/alvelcom/redoubt/pkg/api"
+	"github.com/alvelcom/redoubt/pkg/backend"
 	"github.com/alvelcom/redoubt/pkg/config"
 	"github.com/alvelcom/redoubt/pkg/inter"
 	"github.com/alvelcom/redoubt/pkg/probes"
@@ -47,6 +48,11 @@ func main() {
 		log.Fatal("Can't unmarshal config file: ", err)
 	}
 
+	backends, err := castBackends(c.Backends)
+	if err != nil {
+		log.Fatal("Can't cast backends: ", err)
+	}
+
 	policies, err := castPolicies(c.Policies)
 	if err != nil {
 		log.Fatal("Can't initialize policies: ", err)
@@ -56,13 +62,23 @@ func main() {
 	log.Fatal(http.ListenAndServe(*listenAddr, nil))
 }
 
+func castBackends(bs []config.Backend) (map[string]backend.Backend, error) {
+	out := make(map[string]backend.Backend)
+	for _, b := range bs {
+		bb, err := backend.New(b)
+		if err != nil {
+			return out, err
+		}
+		out[b.Name] = bb
+	}
+	return out, nil
+}
+
 func castPolicies(ps []config.Policy) ([]Policy, error) {
 	policies := []Policy{}
 	for _, p := range ps {
 		policy := Policy{
-			Name:    p.Name,
-			Verify:  []probes.Probe{},
-			Produce: []producers.Producer{},
+			Name: p.Name,
 		}
 
 		for _, probe := range p.Verify {

@@ -19,7 +19,7 @@ type Producer interface {
 // PKI
 type PKI struct {
 	Backend inter.String
-	Role    inter.String
+	Profile inter.String
 	CRT     CRT
 }
 
@@ -55,7 +55,7 @@ func newPKI(c config.Producer) (Producer, error) {
 	if err := inter.StringVar(&pki.Backend, params["backend"]); err != nil {
 		return nil, err
 	}
-	if err := inter.StringVar(&pki.Role, params["role"]); err != nil {
+	if err := inter.StringVar(&pki.Profile, params["profile"]); err != nil {
 		return nil, err
 	}
 
