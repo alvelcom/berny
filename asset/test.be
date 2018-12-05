@@ -15,7 +15,7 @@ policy "kubelet" {
   }
 
   produce x509 "kubelet" {
-    backend = backend.x509_file.main_ca
+    backend = "main_ca"
 
     common_name = "123"
     alt_dns = ["abc", "def"]

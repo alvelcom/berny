@@ -2,12 +2,14 @@ package producers
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 
 	"github.com/alvelcom/redoubt/pkg/api"
+	"github.com/alvelcom/redoubt/pkg/backend"
 	"github.com/alvelcom/redoubt/pkg/config"
 )
 
@@ -15,7 +17,7 @@ var ErrBadProducerType = errors.New("producers: bad type")
 
 type Producer interface {
 	Type() string
-	Produce(*hcl.EvalContext) ([]api.Task, []api.Product, error)
+	Produce(*backend.Map, *hcl.EvalContext) ([]api.Task, []api.Product, error)
 }
 
 // PKI
@@ -55,7 +57,19 @@ func (p *PKI) Type() string {
 	return "pki"
 }
 
-func (p *PKI) Produce(*hcl.EvalContext) ([]api.Task, []api.Product, error) {
+func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.Product, error) {
+	val, diags := p.Backend.Value(ec)
+	if len(diags) > 0 {
+		return nil, nil, diags
+	}
+
+	bn := val.AsString()
+	b, ok := bm.X509[bn]
+	if !ok {
+		return nil, nil, errors.New("no such backend")
+	}
+
+	fmt.Printf("b = %#v\n", b)
 	return nil, nil, nil
 }
 
@@ -63,7 +77,7 @@ func (f *File) Type() string {
 	return "file"
 }
 
-func (f *File) Produce(e *hcl.EvalContext) ([]api.Task, []api.Product, error) {
+func (f *File) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.Product, error) {
 	content, err := ioutil.ReadFile(f.From)
 	if err != nil {
 		return nil, nil, err

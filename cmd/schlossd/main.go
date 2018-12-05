@@ -61,7 +61,7 @@ func main() {
 		log.Fatal("Can't parse config")
 	}
 
-	_, err = castBackends(c.Backends)
+	backends, err := castBackends(c.Backends)
 	if err != nil {
 		log.Fatal("Can't cast backends: ", err)
 	}
@@ -71,20 +71,19 @@ func main() {
 		log.Fatal("Can't initialize policies: ", err)
 	}
 
-	http.Handle("/v1/harvest", &harvestHandler{policies, log})
+	http.Handle("/v1/harvest", &harvestHandler{backends, policies, log})
 	log.Fatal(http.ListenAndServe(*listenAddr, nil))
 }
 
-func castBackends(bs []config.Backend) (map[string]backend.Backend, error) {
-	out := make(map[string]backend.Backend)
+func castBackends(bs []config.Backend) (*backend.Map, error) {
+	m := backend.NewMap()
 	for _, b := range bs {
-		bb, err := backend.New(b)
+		err := m.Add(b)
 		if err != nil {
-			return out, err
+			return m, err
 		}
-		out[b.Name] = bb
 	}
-	return out, nil
+	return m, nil
 }
 
 func castPolicies(ps []config.Policy) ([]Policy, error) {
@@ -131,6 +130,7 @@ func WriteJSON(w http.ResponseWriter, j interface{}) {
 }
 
 type harvestHandler struct {
+	backends *backend.Map
 	policies []Policy
 	log      *log.Logger
 }
@@ -152,7 +152,7 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var resp api.Response
 	for _, policy := range h.policies {
 		for _, producer := range policy.Produce {
-			t, p, err := producer.Produce(nil)
+			t, p, err := producer.Produce(h.backends, nil)
 			if err != nil {
 				WriteJSON(w, map[string]string{"error": err.Error()})
 				return
