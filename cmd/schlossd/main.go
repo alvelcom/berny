@@ -4,17 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
-	"gopkg.in/yaml.v2"
+	"github.com/hashicorp/hcl2/gohcl"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 
 	"github.com/alvelcom/redoubt/pkg/api"
 	"github.com/alvelcom/redoubt/pkg/backend"
 	"github.com/alvelcom/redoubt/pkg/config"
-	"github.com/alvelcom/redoubt/pkg/inter"
 	"github.com/alvelcom/redoubt/pkg/probes"
 	"github.com/alvelcom/redoubt/pkg/producers"
 )
@@ -22,7 +24,7 @@ import (
 var (
 	listenAddr = flag.String("listen", "0.0.0.0:2326",
 		`Listen for incomming request there`)
-	configFile = flag.String("config", "test.yaml",
+	configFile = flag.String("config", "test.be",
 		`Configuration file to use`)
 )
 
@@ -42,13 +44,24 @@ func main() {
 		log.Fatal("Can't read config file: ", err)
 	}
 
-	var c config.Config
-	err = yaml.UnmarshalStrict(data, &c)
-	if err != nil {
-		log.Fatal("Can't unmarshal config file: ", err)
+	file, diags := hclsyntax.ParseConfig(data, *configFile, hcl.Pos{1, 1, 0})
+	if len(diags) > 0 {
+		for _, diag := range diags {
+			fmt.Println(diag.Error())
+		}
+		log.Fatal("Can't parse config")
 	}
 
-	backends, err := castBackends(c.Backends)
+	var c config.Config
+	diags = gohcl.DecodeBody(file.Body, nil, &c)
+	if len(diags) > 0 {
+		for _, diag := range diags {
+			fmt.Println(diag.Error())
+		}
+		log.Fatal("Can't parse config")
+	}
+
+	_, err = castBackends(c.Backends)
 	if err != nil {
 		log.Fatal("Can't cast backends: ", err)
 	}
@@ -134,17 +147,12 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	env := &inter.Env{
-		Machine: req.Machine,
-		User:    req.User,
-	}
-
 	h.log.Printf("%s: harvest", r.RemoteAddr)
 
 	var resp api.Response
 	for _, policy := range h.policies {
 		for _, producer := range policy.Produce {
-			t, p, err := producer.Produce(env)
+			t, p, err := producer.Produce(nil)
 			if err != nil {
 				WriteJSON(w, map[string]string{"error": err.Error()})
 				return
@@ -153,5 +161,6 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			resp.Products = append(resp.Products, p...)
 		}
 	}
+	h.log.Printf("%#v\n", resp)
 	WriteJSON(w, resp)
 }

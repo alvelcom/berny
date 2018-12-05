@@ -2,35 +2,42 @@ package config
 
 import (
 	"errors"
+
+	"github.com/hashicorp/hcl2/hcl"
 )
 
 type Config struct {
-	Backends []Backend
-	Policies []Policy
+	Backends []Backend `hcl:"backend,block"`
+	Policies []Policy  `hcl:"policy,block"`
 }
 
 type Backend struct {
-	Name  string
-	Type  string
-	Value interface{}
+	Type   string   `hcl:"type,label"`
+	Name   string   `hcl:"name,label"`
+	Config hcl.Body `hcl:",remain"`
 }
 
 type Policy struct {
-	Name    string
-	Verify  []Probe
-	Produce []Producer
+	Name    string     `hcl:"name,label"`
+	Verify  []Probe    `hcl:"verify,block"`
+	Produce []Producer `hcl:"produce,block"`
 }
 
 type Probe struct {
-	Name  string
-	Type  string
-	Value interface{}
+	Type   string   `hcl:"type,label"`
+	Config hcl.Body `hcl:",remain"`
 }
 
 type Producer struct {
-	Name  string
-	Type  string
-	Value interface{}
+	ProducerHeader
+	Type   string   `hcl:"type,label"`
+	Name   string   `hcl:"name,label"`
+	Config hcl.Body `hcl:",remain"`
+}
+
+type ProducerHeader struct {
+	Type string `hcl:"type,label"`
+	Name string `hcl:"name,label"`
 }
 
 var (
@@ -38,74 +45,3 @@ var (
 	ErrBadProbe    = errors.New("bad probe")
 	ErrBadProducer = errors.New("bad producer")
 )
-
-func (b *Backend) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v map[string]interface{}
-	err := unmarshal(&v)
-	if err != nil {
-		return err
-	}
-
-	if name, ok := v["name"]; ok {
-		b.Name = name.(string)
-		delete(v, "name")
-	}
-
-	if len(v) != 1 {
-		return ErrBadBackend
-	}
-
-	for type_, value := range v {
-		b.Type = type_
-		b.Value = value
-	}
-
-	return nil
-}
-func (p *Probe) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v map[string]interface{}
-	err := unmarshal(&v)
-	if err != nil {
-		return err
-	}
-
-	if name, ok := v["name"]; ok {
-		p.Name = name.(string)
-		delete(v, "name")
-	}
-
-	if len(v) != 1 {
-		return ErrBadProbe
-	}
-
-	for type_, value := range v {
-		p.Type = type_
-		p.Value = value
-	}
-
-	return nil
-}
-
-func (p *Producer) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var v map[string]interface{}
-	err := unmarshal(&v)
-	if err != nil {
-		return err
-	}
-
-	if name, ok := v["name"]; ok {
-		p.Name = name.(string)
-		delete(v, "name")
-	}
-
-	if len(v) != 1 {
-		return ErrBadProducer
-	}
-
-	for type_, value := range v {
-		p.Type = type_
-		p.Value = value
-	}
-
-	return nil
-}

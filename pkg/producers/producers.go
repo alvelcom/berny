@@ -4,128 +4,76 @@ import (
 	"errors"
 	"io/ioutil"
 
+	"github.com/hashicorp/hcl2/gohcl"
+	"github.com/hashicorp/hcl2/hcl"
+
 	"github.com/alvelcom/redoubt/pkg/api"
 	"github.com/alvelcom/redoubt/pkg/config"
-	"github.com/alvelcom/redoubt/pkg/inter"
 )
 
 var ErrBadProducerType = errors.New("producers: bad type")
 
 type Producer interface {
 	Type() string
-	Produce(*inter.Env) ([]api.Task, []api.Product, error)
+	Produce(*hcl.EvalContext) ([]api.Task, []api.Product, error)
 }
 
 // PKI
 type PKI struct {
-	Backend inter.String
-	Profile inter.String
-	CRT     CRT
-}
-
-type CRT struct {
-	CommonName inter.String
-	AltDNS     inter.StringList
-	AltIPs     inter.StringList
+	Name       string
+	Backend    hcl.Expression `hcl:"backend"`
+	CommonName string         `hcl:"common_name"`
+	AltDNS     []string       `hcl:"alt_dns,optional"`
+	AltIPs     []string       `hcl:"alt_ips,optional"`
 }
 
 type File struct {
-	Files inter.StringMap
+	Name    string
+	Content string `hcl:"content,optional"`
+	From    string `hcl:"from,optional"`
 }
 
 func New(c config.Producer) (Producer, error) {
+	var p Producer
 	switch c.Type {
-	case "pki":
-		return newPKI(c)
+	case "x509":
+		p = &PKI{Name: c.Name}
 	case "file":
-		return newFile(c)
+		p = &File{Name: c.Name}
 	default:
 		return nil, ErrBadProducerType
 	}
-}
 
-func newPKI(c config.Producer) (Producer, error) {
-	params, ok := c.Value.(map[interface{}]interface{})
-	if !ok {
-		return nil, errors.New("new pki: can't cast to map")
+	diags := gohcl.DecodeBody(c.Config, nil, p)
+	if len(diags) > 0 {
+		return nil, diags
 	}
-
-	var pki PKI
-
-	if err := inter.StringVar(&pki.Backend, params["backend"]); err != nil {
-		return nil, err
-	}
-	if err := inter.StringVar(&pki.Profile, params["profile"]); err != nil {
-		return nil, err
-	}
-
-	crt_, ok := params["crt"]
-	if !ok {
-		return nil, errors.New("new pki: no crt block")
-	}
-	crt, ok := crt_.(map[interface{}]interface{})
-	if !ok {
-		return nil, errors.New("new pki: can't cast crt to map")
-	}
-
-	if err := inter.StringVar(&pki.CRT.CommonName, crt["common-name"]); err != nil {
-		return nil, err
-	}
-	if err := inter.StringListVar(&pki.CRT.AltDNS, crt["alt-dns"]); err != nil {
-		return nil, err
-	}
-	if err := inter.StringListVar(&pki.CRT.AltIPs, crt["alt-ips"]); err != nil {
-		return nil, err
-	}
-
-	return &pki, nil
+	return p, nil
 }
 
 func (p *PKI) Type() string {
 	return "pki"
 }
 
-func (p *PKI) Produce(*inter.Env) ([]api.Task, []api.Product, error) {
-
-	return nil, []api.Product{{}}, nil
+func (p *PKI) Produce(*hcl.EvalContext) ([]api.Task, []api.Product, error) {
+	return nil, nil, nil
 }
 
-func newFile(c config.Producer) (Producer, error) {
-	params, ok := c.Value.(map[interface{}]interface{})
-	if !ok {
-		return nil, errors.New("new pki: can't cast to map")
-	}
-
-	var file File
-	if err := inter.StringMapVar(&file.Files, params); err != nil {
-		return nil, err
-	}
-
-	return &file, nil
+func (f *File) Type() string {
+	return "file"
 }
 
-func (p *File) Type() string {
-	return "pki"
-}
-
-func (p *File) Produce(e *inter.Env) ([]api.Task, []api.Product, error) {
-	m, err := p.Files.StringMap(e)
+func (f *File) Produce(e *hcl.EvalContext) ([]api.Task, []api.Product, error) {
+	content, err := ioutil.ReadFile(f.From)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var ps []api.Product
-	for k, v := range m {
-		content, err := ioutil.ReadFile(v)
-		if err != nil {
-			return nil, ps, err
-		}
-
-		ps = append(ps, api.Product{
-			Name: []string{k},
-			Body: content,
-		})
-	}
+	ps := []api.Product{{
+		Name: []string{f.Name},
+		Body: content,
+		Mask: 0400,
+	}}
 
 	return nil, ps, nil
 }

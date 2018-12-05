@@ -4,13 +4,14 @@ import (
 	"crypto/x509"
 	"errors"
 
+	"github.com/hashicorp/hcl2/gohcl"
+
 	"github.com/alvelcom/redoubt/pkg/config"
-	"github.com/alvelcom/redoubt/pkg/inter"
 )
 
 type Backend interface {
 	Type() string
-	Init(env *inter.Env) error
+	Init() error
 }
 
 type X509 interface {
@@ -18,55 +19,34 @@ type X509 interface {
 }
 
 func New(c config.Backend) (Backend, error) {
-	m := map[string]func(config.Backend) (Backend, error){
-		"static-x509": newStaticX509,
+	var ret Backend
+	switch c.Type {
+	case "x509_file":
+		ret = new(x509File)
+	default:
+		return nil, errors.New("backend: no backend found")
 	}
-	if f, ok := m[c.Type]; ok {
-		return f(c)
+
+	diags := gohcl.DecodeBody(c.Config, nil, ret)
+	if len(diags) > 0 {
+		return nil, diags
 	}
-	return nil, errors.New("backend: no backend found")
+	return ret, nil
 }
 
-type staticX509 struct {
-	Key   inter.String
-	Cert  inter.String
-	Chain inter.String
+type x509File struct {
+	Key   string `hcl:"key"`
+	Cert  string `hcl:"cert"`
+	Chain string `hcl:"chain,optional"`
 }
 
-func newStaticX509(c config.Backend) (Backend, error) {
-	m, ok := c.Value.(map[interface{}]interface{})
-	if !ok {
-		return nil, errors.New("static X.509: can't cast to map")
-	}
-
-	s := new(staticX509)
-	if err := inter.StringVar(&s.Key, m["key"]); err != nil {
-		return nil, err
-	}
-	if err := inter.StringVar(&s.Cert, m["cert"]); err != nil {
-		return nil, err
-	}
-	if err := inter.StringVar(&s.Chain, m["chain"]); err != nil {
-		return nil, err
-	}
-
-	if s.Key == nil {
-		return nil, errors.New("static X.509: key is not set")
-	}
-	if s.Cert == nil {
-		return nil, errors.New("static X.509: cert is not set")
-	}
-
-	return s, nil
-}
-
-func (s *staticX509) Type() string {
+func (s *x509File) Type() string {
 	return "Static X.509"
 }
-func (s *staticX509) Init(env *inter.Env) error {
+func (s *x509File) Init() error {
 	return nil
 }
 
-func (s *staticX509) Sign(role string, csr *x509.CertificateRequest) ([]x509.Certificate, error) {
+func (s *x509File) Sign(role string, csr *x509.CertificateRequest) ([]x509.Certificate, error) {
 	return nil, nil
 }
