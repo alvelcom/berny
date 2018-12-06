@@ -1,8 +1,12 @@
 package backend
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"io/ioutil"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
@@ -15,7 +19,7 @@ type Map struct {
 }
 
 type X509 interface {
-	Sign(role string, csr *x509.CertificateRequest) ([]x509.Certificate, error)
+	Sign(cert *x509.Certificate) (derCert []byte, err error)
 }
 
 func NewMap() *Map {
@@ -55,13 +59,49 @@ type x509File struct {
 	Chain string `hcl:"chain,optional"`
 }
 
-func (s *x509File) Type() string {
-	return "Static X.509"
-}
-func (s *x509File) Init() error {
-	return nil
+func (x *x509File) Sign(template *x509.Certificate) ([]byte, error) {
+	key, err := loadKeyFile(x.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := loadCertFile(x.Cert)
+	if err != nil {
+		return nil, err
+	}
+
+	var pk ecdsa.PublicKey = template.PublicKey.(ecdsa.PublicKey)
+	newCert, err := x509.CreateCertificate(rand.Reader, template, cert, &pk, key)
+	if err != nil {
+		return nil, err
+	}
+	return newCert, nil
 }
 
-func (s *x509File) Sign(role string, csr *x509.CertificateRequest) ([]x509.Certificate, error) {
-	return nil, nil
+func loadKeyFile(fn string) (*ecdsa.PrivateKey, error) {
+	b, err := ioutil.ReadFile(fn)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(b)
+	if block == nil {
+		return nil, errors.New("backend: can't decode pem")
+	}
+
+	return x509.ParseECPrivateKey(block.Bytes)
+}
+
+func loadCertFile(fn string) (*x509.Certificate, error) {
+	b, err := ioutil.ReadFile(fn)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(b)
+	if block == nil {
+		return nil, errors.New("backend: can't decode pem")
+	}
+
+	return x509.ParseCertificate(block.Bytes)
 }

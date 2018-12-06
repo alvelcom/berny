@@ -1,9 +1,15 @@
 package producers
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
-	"fmt"
 	"io/ioutil"
+	"math/big"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
@@ -16,7 +22,6 @@ import (
 var ErrBadProducerType = errors.New("producers: bad type")
 
 type Producer interface {
-	Type() string
 	Produce(*backend.Map, *hcl.EvalContext) ([]api.Task, []api.Product, error)
 }
 
@@ -53,10 +58,6 @@ func New(c config.Producer) (Producer, error) {
 	return p, nil
 }
 
-func (p *PKI) Type() string {
-	return "pki"
-}
-
 func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.Product, error) {
 	val, diags := p.Backend.Value(ec)
 	if len(diags) > 0 {
@@ -69,12 +70,35 @@ func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.P
 		return nil, nil, errors.New("no such backend")
 	}
 
-	fmt.Printf("b = %#v\n", b)
-	return nil, nil, nil
-}
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
 
-func (f *File) Type() string {
-	return "file"
+	cert, err := b.Sign(&x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: "Hey MVP",
+		},
+		DNSNames:           []string{"example.com"},
+		SerialNumber:       big.NewInt(1),
+		PublicKey:          key.PublicKey,
+		PublicKeyAlgorithm: x509.ECDSA,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pemCert := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert,
+	})
+
+	ps := []api.Product{{
+		Name: []string{p.Name + ".crt"},
+		Body: pemCert,
+		Mask: 0400,
+	}}
+	return nil, ps, nil
 }
 
 func (f *File) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.Product, error) {

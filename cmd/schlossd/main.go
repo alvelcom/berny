@@ -161,6 +161,5 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			resp.Products = append(resp.Products, p...)
 		}
 	}
-	h.log.Printf("%#v\n", resp)
 	WriteJSON(w, resp)
 }

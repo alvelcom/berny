@@ -1,6 +1,6 @@
 backend x509_file "main_ca" {
-  cert = "123.pem"
-  key  = "1234.pem"
+  cert = "asset/cert-ec.pem"
+  key  = "asset/key-ec.pem"
 }
 
 policy "kubelet" {
