@@ -80,10 +80,9 @@ func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.P
 		Subject: pkix.Name{
 			CommonName: "Hey MVP",
 		},
-		DNSNames:           []string{"example.com"},
-		SerialNumber:       big.NewInt(1),
-		PublicKey:          &key.PublicKey,
-		PublicKeyAlgorithm: x509.ECDSA,
+		DNSNames:     []string{"example.com"},
+		SerialNumber: big.NewInt(1),
+		PublicKey:    &key.PublicKey,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -106,12 +105,17 @@ func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.P
 		{
 			Name: []string{p.Name, "cert.pem"},
 			Body: pemCert,
-			Mask: 0400,
+			Mask: 0644,
 		},
 		{
 			Name: []string{p.Name, "chain.pem"},
 			Body: pemChain.Bytes(),
-			Mask: 0400,
+			Mask: 0644,
+		},
+		{
+			Name: []string{p.Name, "fullchain.pem"},
+			Body: append(pemCert, pemChain.Bytes()...),
+			Mask: 0644,
 		},
 	}
 	return nil, ps, nil

@@ -83,7 +83,7 @@ func (x *x509File) Sign(template *x509.Certificate) ([]byte, [][]byte, error) {
 		return nil, nil, err
 	}
 
-	return newCert, append(chainDer, certDer), nil
+	return newCert, append([][]byte{certDer}, chainDer...), nil
 }
 
 func loadKeyFile(fn string) (*ecdsa.PrivateKey, error) {
