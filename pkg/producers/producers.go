@@ -1,6 +1,7 @@
 package producers
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -75,13 +76,13 @@ func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.P
 		return nil, nil, err
 	}
 
-	cert, err := b.Sign(&x509.Certificate{
+	cert, chain, err := b.Sign(&x509.Certificate{
 		Subject: pkix.Name{
 			CommonName: "Hey MVP",
 		},
 		DNSNames:           []string{"example.com"},
 		SerialNumber:       big.NewInt(1),
-		PublicKey:          key.PublicKey,
+		PublicKey:          &key.PublicKey,
 		PublicKeyAlgorithm: x509.ECDSA,
 	})
 	if err != nil {
@@ -93,11 +94,26 @@ func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.P
 		Bytes: cert,
 	})
 
-	ps := []api.Product{{
-		Name: []string{p.Name, "cert.pem"},
-		Body: pemCert,
-		Mask: 0400,
-	}}
+	var pemChain bytes.Buffer
+	for i := range chain {
+		pem.Encode(&pemChain, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: chain[i],
+		})
+	}
+
+	ps := []api.Product{
+		{
+			Name: []string{p.Name, "cert.pem"},
+			Body: pemCert,
+			Mask: 0400,
+		},
+		{
+			Name: []string{p.Name, "chain.pem"},
+			Body: pemChain.Bytes(),
+			Mask: 0400,
+		},
+	}
 	return nil, ps, nil
 }
 
