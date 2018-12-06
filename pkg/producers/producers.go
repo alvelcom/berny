@@ -94,7 +94,7 @@ func (p *PKI) Produce(bm *backend.Map, ec *hcl.EvalContext) ([]api.Task, []api.P
 	})
 
 	ps := []api.Product{{
-		Name: []string{p.Name + ".crt"},
+		Name: []string{p.Name, "cert.pem"},
 		Body: pemCert,
 		Mask: 0400,
 	}}

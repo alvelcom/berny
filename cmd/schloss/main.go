@@ -64,13 +64,19 @@ func saveProducts(dir string, ps []api.Product) error {
 		log.Printf("- %s (%04o)", name, p.Mask)
 
 		name = path.Join(dir, name)
+		if err := os.MkdirAll(path.Dir(name), os.FileMode(0755)); err != nil {
+			return err
+		}
+
 		fd, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
 			os.FileMode(p.Mask))
 		if err != nil {
 			return err
 		}
 
-		if _, err := fd.Write(p.Body); err != nil {
+		_, err = fd.Write(p.Body)
+		fd.Close()
+		if err != nil {
 			return err
 		}
 	}
