@@ -59,7 +59,7 @@ func main() {
 			log.Printf("Tasks:")
 		}
 		for i := range tasks {
-			log.Printf("- %#v", tasks[i])
+			log.Printf("- %s %v", tasks[i].Type, tasks[i].Name)
 			products, taskResp, err := task.Solve(tasks[i])
 			if err != nil {
 				log.Printf("Can't solve a task: %s", err)
