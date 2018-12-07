@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/alvelcom/redoubt/pkg/api"
+	"github.com/alvelcom/redoubt/pkg/task"
 )
 
 var (
@@ -27,34 +28,67 @@ func main() {
 	prepareFlags()
 	log.Printf("MachineInfo: %+v", info)
 
-	c, err := api.NewClient(http.DefaultClient, *fServer, info)
+	c, err := api.NewHTTPClient(http.DefaultClient, *fServer, info)
 	if err != nil {
 		log.Printf("Can't initialize: %s", err)
 		return
 	}
 
-	prods, tasks, errs, err := c.Harvest(nil)
-	if err != nil {
-		log.Printf("Can't harvest: %s", err)
-		return
-	}
+	var taskResps []api.TaskResponse
 
-	if len(errs) > 0 {
-		log.Printf("Errors:")
-		for _, err := range errs {
-			log.Printf("%7s: %s", err.Type, err.Message)
+	for {
+		log.Printf("Harvesting with %d task response(s)", len(taskResps))
+		prods, tasks, errs, err := c.Harvest(taskResps)
+		if err != nil {
+			log.Printf("Can't harvest: %s", err)
+			return
 		}
-		return
-	}
 
-	log.Printf("Tasks:")
-	for _, task := range tasks {
-		log.Printf("- %#v", task)
-	}
-	log.Printf("Saving products:")
-	if err := saveProducts(*fDir, prods); err != nil {
-		log.Printf("saving error: %s", err)
-		return
+		if len(errs) > 0 {
+			log.Printf("Errors:")
+			for _, err := range errs {
+				log.Printf("%7s: %s", err.Type, err.Message)
+			}
+			return
+		}
+
+		var taskProducts []api.Product
+		taskResps = make([]api.TaskResponse, 0)
+		if len(tasks) > 0 {
+			log.Printf("Tasks:")
+		}
+		for i := range tasks {
+			log.Printf("- %#v", tasks[i])
+			products, taskResp, err := task.Solve(tasks[i])
+			if err != nil {
+				log.Printf("Can't solve a task: %s", err)
+				return
+			}
+
+			taskResps = append(taskResps, taskResp)
+			taskProducts = append(taskProducts, products...)
+
+		}
+
+		if len(taskProducts) > 0 {
+			log.Printf("Saving task products:")
+		}
+		if err := saveProducts(*fDir, taskProducts); err != nil {
+			log.Printf("saving error: %s", err)
+			return
+		}
+
+		if len(prods) > 0 {
+			log.Printf("Saving products:")
+		}
+		if err := saveProducts(*fDir, prods); err != nil {
+			log.Printf("saving error: %s", err)
+			return
+		}
+
+		if len(taskResps) == 0 {
+			break
+		}
 	}
 }
 
@@ -68,8 +102,7 @@ func saveProducts(dir string, ps []api.Product) error {
 			return err
 		}
 
-		fd, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
-			os.FileMode(p.Mask))
+		fd, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(p.Mask))
 		if err != nil {
 			return err
 		}

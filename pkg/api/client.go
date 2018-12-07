@@ -7,31 +7,31 @@ import (
 )
 
 type Client interface {
-	Harvest(r []Trophy) ([]Product, []Task, []Error, error)
+	Harvest(r []TaskResponse) ([]Product, []Task, []Error, error)
 }
 
-type httpClient struct {
+type HTTPClient struct {
 	client       *http.Client
 	url          string
 	serverCookie string
 	info         MachineInfo
 }
 
-func NewClient(c *http.Client, url string, info MachineInfo) (Client, error) {
-	return &httpClient{
+func NewHTTPClient(c *http.Client, url string, info MachineInfo) (*HTTPClient, error) {
+	return &HTTPClient{
 		client: c,
 		url:    url,
 		info:   info,
 	}, nil
 }
 
-func (hc *httpClient) Harvest(g []Trophy) (p []Product, t []Task, e []Error, err error) {
+func (hc *HTTPClient) Harvest(r []TaskResponse) (p []Product, t []Task, e []Error, err error) {
 	var b bytes.Buffer
 	if err = json.NewEncoder(&b).Encode(Request{
 		ClientVersion: 0,
 		ServerCookie:  hc.serverCookie,
 		Machine:       &hc.info,
-		Trophies:      g,
+		TaskResponses: r,
 	}); err != nil {
 		return
 	}
