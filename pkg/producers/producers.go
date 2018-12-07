@@ -8,9 +8,11 @@ import (
 	"errors"
 	"io/ioutil"
 	"math/big"
+	"net"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/alvelcom/redoubt/pkg/api"
 	"github.com/alvelcom/redoubt/pkg/backend"
@@ -57,9 +59,9 @@ type PKI struct {
 	Name string
 
 	Backend    hcl.Expression `hcl:"backend"`
-	CommonName string         `hcl:"common_name"`
-	AltDNS     []string       `hcl:"alt_dns,optional"`
-	AltIPs     []string       `hcl:"alt_ips,optional"`
+	CommonName hcl.Expression `hcl:"common_name"`
+	AltDNS     hcl.Expression `hcl:"alt_dns,optional"`
+	AltIPs     hcl.Expression `hcl:"alt_ips,optional"`
 }
 
 func (p *PKI) Prepare(c *Context) (TaskRequests, error) {
@@ -101,12 +103,36 @@ func (p *PKI) Produce(c *Context) ([]api.Product, error) {
 		return nil, errors.New("no such backend")
 	}
 
+	commonName, diags := p.CommonName.Value(c.EvalContext)
+	if len(diags) > 0 {
+		return nil, diags
+	}
+
+	if !commonName.Type().Equals(cty.String) {
+		return nil, errors.New("producer: common name is not a string")
+	}
+
+	altDNS, err := evalStringList(p.AltDNS, c.EvalContext)
+	if err != nil {
+		return nil, err
+	}
+
+	altIPsStrings, err := evalStringList(p.AltIPs, c.EvalContext)
+	if err != nil {
+		return nil, err
+	}
+	var altIPs []net.IP
+	for _, ipString := range altIPsStrings {
+		altIPs = append(altIPs, net.ParseIP(ipString))
+	}
+
 	publicKey := ecdsaKeyResp.PublicKey()
 	cert, chain, err := b.Sign(&x509.Certificate{
 		Subject: pkix.Name{
-			CommonName: "Hey MVP",
+			CommonName: commonName.AsString(),
 		},
-		DNSNames:     []string{"example.com"},
+		DNSNames:     altDNS,
+		IPAddresses:  altIPs,
 		SerialNumber: big.NewInt(1),
 		PublicKey:    &publicKey,
 	})
@@ -171,4 +197,30 @@ func (f *File) Produce(c *Context) ([]api.Product, error) {
 	}}
 
 	return ps, nil
+}
+
+func evalStringList(expr hcl.Expression, ctx *hcl.EvalContext) ([]string, error) {
+	if expr == nil {
+		return nil, nil
+	}
+
+	evaluated, diags := expr.Value(ctx)
+	if len(diags) > 0 {
+		return nil, diags
+	}
+
+	if evaluated.IsNull() {
+		return nil, nil
+	}
+
+	if evaluated.Type().Equals(cty.List(cty.String)) {
+		return nil, errors.New("producer: AltDNS is not a list of strings")
+	}
+
+	var list []string
+	for _, value := range evaluated.AsValueSlice() {
+		list = append(list, value.AsString())
+	}
+
+	return list, nil
 }
