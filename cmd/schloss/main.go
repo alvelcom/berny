@@ -36,7 +36,8 @@ func main() {
 
 	var taskResps []api.TaskResponse
 
-	for {
+	newTasks := -1
+	for newTasks != 0 {
 		log.Printf("Harvesting with %d task response(s)", len(taskResps))
 		prods, tasks, errs, err := c.Harvest(taskResps)
 		if err != nil {
@@ -53,7 +54,7 @@ func main() {
 		}
 
 		var taskProducts []api.Product
-		taskResps = make([]api.TaskResponse, 0)
+		newTasks = len(tasks)
 		if len(tasks) > 0 {
 			log.Printf("Tasks:")
 		}
@@ -84,10 +85,6 @@ func main() {
 		if err := saveProducts(*fDir, prods); err != nil {
 			log.Printf("saving error: %s", err)
 			return
-		}
-
-		if len(taskResps) == 0 {
-			break
 		}
 	}
 }

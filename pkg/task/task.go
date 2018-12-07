@@ -146,6 +146,14 @@ func (er ECDSAKeyResponse) ToAPI(name []string) api.TaskResponse {
 	}
 }
 
+func (er ECDSAKeyResponse) PublicKey() ecdsa.PublicKey {
+	return ecdsa.PublicKey{
+		Curve: ECDSACurve(er.Curve),
+		X:     er.X,
+		Y:     er.Y,
+	}
+}
+
 func ECDSACurve(c string) elliptic.Curve {
 	switch c {
 	case "P-224":

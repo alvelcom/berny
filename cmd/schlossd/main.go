@@ -19,6 +19,7 @@ import (
 	"github.com/alvelcom/redoubt/pkg/config"
 	"github.com/alvelcom/redoubt/pkg/probes"
 	"github.com/alvelcom/redoubt/pkg/producers"
+	"github.com/alvelcom/redoubt/pkg/task"
 )
 
 var (
@@ -149,15 +150,56 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	h.log.Printf("%s: harvest", r.RemoteAddr)
 
+	producerContext := &producers.Context{
+		Backends:      h.backends,
+		EvalContext:   nil,
+		TaskResponses: make(producers.TaskResponses),
+	}
+
+	for i := range req.TaskResponses {
+		taskResp, err := task.FromAPIResponse(req.TaskResponses[i])
+		if err != nil {
+			log.Printf("error = %v", err)
+			WriteJSON(w, map[string]string{"error": err.Error()})
+			return
+		}
+
+		var key [4]string
+		copy(key[:], req.TaskResponses[i].Name[:])
+		producerContext.TaskResponses[key] = taskResp
+	}
+
+	log.Printf("req = %#v", req)
+	log.Printf("ctx = %#v", producerContext)
+
 	var resp api.Response
 	for _, policy := range h.policies {
 		for _, producer := range policy.Produce {
-			t, p, err := producer.Produce(h.backends, nil)
+			tasks, err := producer.Prepare(producerContext)
 			if err != nil {
+				log.Printf("error = %v", err)
 				WriteJSON(w, map[string]string{"error": err.Error()})
 				return
 			}
-			resp.Tasks = append(resp.Tasks, t...)
+			for key := range tasks {
+				resp.Tasks = append(resp.Tasks, tasks[key].ToAPI(key[:]))
+			}
+		}
+	}
+
+	if len(resp.Tasks) > 0 {
+		WriteJSON(w, resp)
+		return
+	}
+
+	for _, policy := range h.policies {
+		for _, producer := range policy.Produce {
+			p, err := producer.Produce(producerContext)
+			if err != nil {
+				log.Printf("error = %v", err.Error())
+				WriteJSON(w, map[string]string{"error": err.Error()})
+				return
+			}
 			resp.Products = append(resp.Products, p...)
 		}
 	}
