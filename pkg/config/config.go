@@ -12,8 +12,9 @@ type Config struct {
 }
 
 type Backend struct {
-	Type   string   `hcl:"type,label"`
+	Kind   string   `hcl:"kind,label"`
 	Name   string   `hcl:"name,label"`
+	Type   string   `hcl:"type,attr"`
 	Config hcl.Body `hcl:",remain"`
 }
 

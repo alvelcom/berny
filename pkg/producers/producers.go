@@ -97,11 +97,11 @@ func (p *PKI) Produce(c *Context) ([]api.Product, error) {
 		return nil, diags
 	}
 
-	bn := val.AsString()
-	b, ok := c.Backends.X509[bn]
-	if !ok {
-		return nil, errors.New("no such backend")
+	if !val.Type().Equals(backend.X509Type) {
+		return nil, errors.New("producer: backend is not valid")
 	}
+
+	b := **(val.EncapsulatedValue().(**backend.X509))
 
 	commonName, diags := p.CommonName.Value(c.EvalContext)
 	if len(diags) > 0 {

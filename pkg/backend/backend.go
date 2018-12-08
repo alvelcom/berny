@@ -7,9 +7,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
+	"reflect"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/alvelcom/redoubt/pkg/config"
 )
@@ -22,6 +24,11 @@ type X509 interface {
 	Sign(cert *x509.Certificate) (derCert []byte, derChain [][]byte, err error)
 }
 
+var (
+	X509Reflect = reflect.TypeOf((*X509)(nil))
+	X509Type    = cty.Capsule("backend.X509", X509Reflect)
+)
+
 func NewMap() *Map {
 	return &Map{
 		X509: make(map[string]X509),
@@ -31,8 +38,8 @@ func NewMap() *Map {
 func (m *Map) Add(c config.Backend) error {
 	var x509 X509
 
-	switch c.Type {
-	case "x509_file":
+	switch c.Kind {
+	case "x509":
 		x509 = new(x509File)
 	default:
 		return errors.New("backend: no backend found")

@@ -1,4 +1,6 @@
-backend x509_file "main_ca" {
+backend x509 "main_ca" {
+  type = "file"
+
   cert = "asset/cert-ec.pem"
   key  = "asset/key-ec.pem"
 }
@@ -15,7 +17,7 @@ policy "kubelet" {
   }
 
   produce x509 "kubelet" {
-    backend = "main_ca"
+    backend = backend.x509.main_ca
 
     common_name = "Kubelet User certificate"
     alt_dns = [req.fqdn]

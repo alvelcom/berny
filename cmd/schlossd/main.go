@@ -156,7 +156,8 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Backends: h.backends,
 		EvalContext: &hcl.EvalContext{
 			Variables: map[string]cty.Value{
-				"req": getReqVar(r, &req),
+				"req":     getReqVar(r, &req),
+				"backend": getBackendVar(h.backends),
 			},
 		},
 		TaskResponses: make(producers.TaskResponses),
@@ -210,6 +211,18 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	WriteJSON(w, resp)
+}
+
+func getBackendVar(b *backend.Map) cty.Value {
+	x509 := make(map[string]cty.Value)
+	for key, value := range b.X509 {
+		var tmp *backend.X509 = &value
+		x509[key] = cty.CapsuleVal(backend.X509Type, &tmp)
+	}
+
+	return cty.ObjectVal(map[string]cty.Value{
+		"x509": cty.ObjectVal(x509),
+	})
 }
 
 func getReqVar(hr *http.Request, ar *api.Request) cty.Value {
