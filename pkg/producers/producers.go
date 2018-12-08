@@ -114,12 +114,12 @@ func (p *PKI) Produce(c *Context) ([]api.Product, error) {
 
 	altDNS, err := evalStringList(p.AltDNS, c.EvalContext)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("producer: alt_dns: " + err.Error())
 	}
 
 	altIPsStrings, err := evalStringList(p.AltIPs, c.EvalContext)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("producer: alt_ips: " + err.Error())
 	}
 	var altIPs []net.IP
 	for _, ipString := range altIPsStrings {
@@ -213,8 +213,16 @@ func evalStringList(expr hcl.Expression, ctx *hcl.EvalContext) ([]string, error)
 		return nil, nil
 	}
 
-	if evaluated.Type().Equals(cty.List(cty.String)) {
-		return nil, errors.New("producer: AltDNS is not a list of strings")
+	if evaluated.Type().IsTupleType() {
+		var err error
+		evaluated, err = convertTupleToList(cty.String, evaluated)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !evaluated.Type().Equals(cty.List(cty.String)) {
+		return nil, errors.New("expected a list of strings, got " + evaluated.Type().GoString())
 	}
 
 	var list []string
@@ -223,4 +231,18 @@ func evalStringList(expr hcl.Expression, ctx *hcl.EvalContext) ([]string, error)
 	}
 
 	return list, nil
+}
+
+func convertTupleToList(type_ cty.Type, tuple cty.Value) (cty.Value, error) {
+	if tuple.LengthInt() == 0 {
+		return cty.ListValEmpty(type_), nil
+	}
+
+	list := tuple.AsValueSlice()
+	for i := range list {
+		if !type_.Equals(list[i].Type()) {
+			return cty.ListValEmpty(type_), errors.New("can't can tuple to list")
+		}
+	}
+	return cty.ListVal(list), nil
 }

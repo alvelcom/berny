@@ -68,7 +68,6 @@ func main() {
 
 			taskResps = append(taskResps, taskResp)
 			taskProducts = append(taskProducts, products...)
-
 		}
 
 		if len(taskProducts) > 0 {

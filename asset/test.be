@@ -18,7 +18,7 @@ policy "kubelet" {
     backend = "main_ca"
 
     common_name = "Kubelet User certificate"
-    alt_dns = ["abc", "def"]
-    alt_ips = ["8.8.8.8", "1234::8.8.8.8"]
+    alt_dns = [req.fqdn]
+    alt_ips = req.ips
   }
 }

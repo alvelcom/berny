@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 
 	"github.com/hashicorp/hcl2/gohcl"
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/alvelcom/redoubt/pkg/api"
 	"github.com/alvelcom/redoubt/pkg/backend"
@@ -141,6 +143,8 @@ func printJSON(j interface{}) error {
 }
 
 func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.log.Printf("%s: harvest", r.RemoteAddr)
+
 	var req api.Request
 	if err := ReadJSON(r, &req); err != nil {
 		log.Print("Bad request: ", err)
@@ -148,11 +152,13 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.log.Printf("%s: harvest", r.RemoteAddr)
-
 	producerContext := &producers.Context{
-		Backends:      h.backends,
-		EvalContext:   nil,
+		Backends: h.backends,
+		EvalContext: &hcl.EvalContext{
+			Variables: map[string]cty.Value{
+				"req": getReqVar(r, &req),
+			},
+		},
 		TaskResponses: make(producers.TaskResponses),
 	}
 
@@ -204,4 +210,21 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	WriteJSON(w, resp)
+}
+
+func getReqVar(hr *http.Request, ar *api.Request) cty.Value {
+	var ips []cty.Value
+	for i := range ar.Machine.IPs {
+		ips = append(ips, cty.StringVal(ar.Machine.IPs[i]))
+	}
+
+	requestIP, _, err := net.SplitHostPort(hr.RemoteAddr)
+	if err != nil {
+		panic(err)
+	}
+	return cty.ObjectVal(map[string]cty.Value{
+		"fqdn":       cty.StringVal(ar.Machine.FQDN),
+		"ips":        cty.ListVal(ips),
+		"request_ip": cty.StringVal(requestIP),
+	})
 }
