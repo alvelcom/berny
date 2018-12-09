@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/alvelcom/redoubt/pkg/config"
+	"github.com/alvelcom/berny/pkg/config"
 )
 
 type Map struct {

@@ -10,7 +10,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/alvelcom/redoubt/pkg/api"
+	"github.com/alvelcom/berny/pkg/api"
 )
 
 type Task interface {

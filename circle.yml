@@ -2,9 +2,9 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.9
+      - image: circleci/golang:1.11.2
       
-    working_directory: /go/src/github.com/alvelcom/redoubt
+    working_directory: /go/src/github.com/alvelcom/berny
     steps:
       - checkout
       - run: go get -v -t -d ./...

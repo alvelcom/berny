@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/alvelcom/redoubt/pkg/api"
-	"github.com/alvelcom/redoubt/pkg/task"
+	"github.com/alvelcom/berny/pkg/api"
+	"github.com/alvelcom/berny/pkg/task"
 )
 
 var (

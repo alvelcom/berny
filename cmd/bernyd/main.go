@@ -16,12 +16,12 @@ import (
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/alvelcom/redoubt/pkg/api"
-	"github.com/alvelcom/redoubt/pkg/backend"
-	"github.com/alvelcom/redoubt/pkg/config"
-	"github.com/alvelcom/redoubt/pkg/probes"
-	"github.com/alvelcom/redoubt/pkg/producers"
-	"github.com/alvelcom/redoubt/pkg/task"
+	"github.com/alvelcom/berny/pkg/api"
+	"github.com/alvelcom/berny/pkg/backend"
+	"github.com/alvelcom/berny/pkg/config"
+	"github.com/alvelcom/berny/pkg/probes"
+	"github.com/alvelcom/berny/pkg/producers"
+	"github.com/alvelcom/berny/pkg/task"
 )
 
 var (

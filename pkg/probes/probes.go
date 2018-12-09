@@ -3,7 +3,7 @@ package probes
 import (
 	"errors"
 
-	"github.com/alvelcom/redoubt/pkg/config"
+	"github.com/alvelcom/berny/pkg/config"
 )
 
 var (

@@ -14,10 +14,10 @@ import (
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/alvelcom/redoubt/pkg/api"
-	"github.com/alvelcom/redoubt/pkg/backend"
-	"github.com/alvelcom/redoubt/pkg/config"
-	"github.com/alvelcom/redoubt/pkg/task"
+	"github.com/alvelcom/berny/pkg/api"
+	"github.com/alvelcom/berny/pkg/backend"
+	"github.com/alvelcom/berny/pkg/config"
+	"github.com/alvelcom/berny/pkg/task"
 )
 
 var ErrBadProducerType = errors.New("producers: bad type")
