@@ -156,7 +156,7 @@ func (h *harvestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Backends: h.backends,
 		EvalContext: &hcl.EvalContext{
 			Variables: map[string]cty.Value{
-				"req":     getReqVar(r, &req),
+				"req":     getReqVar(r, req.Machine),
 				"backend": getBackendVar(h.backends),
 			},
 		},
@@ -227,19 +227,26 @@ func getBackendVar(b *backend.Map) cty.Value {
 	})
 }
 
-func getReqVar(hr *http.Request, ar *api.Request) cty.Value {
+func getReqVar(hr *http.Request, mi *api.MachineInfo) cty.Value {
 	var ips []cty.Value
-	for i := range ar.Machine.IPs {
-		ips = append(ips, cty.StringVal(ar.Machine.IPs[i]))
+	for i := range mi.IPs {
+		ips = append(ips, cty.StringVal(mi.IPs[i]))
+	}
+
+	extra := make(map[string]cty.Value)
+	for key := range mi.Extra {
+		extra[key] = cty.StringVal(mi.Extra[key])
 	}
 
 	requestIP, _, err := net.SplitHostPort(hr.RemoteAddr)
 	if err != nil {
 		panic(err)
 	}
+
 	return cty.ObjectVal(map[string]cty.Value{
-		"fqdn":       cty.StringVal(ar.Machine.FQDN),
+		"fqdn":       cty.StringVal(mi.FQDN),
 		"ips":        cty.ListVal(ips),
 		"request_ip": cty.StringVal(requestIP),
+		"extra":      cty.MapVal(extra),
 	})
 }

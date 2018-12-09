@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 
 	"github.com/alvelcom/redoubt/pkg/api"
@@ -21,7 +22,9 @@ var (
 )
 
 func init() {
-	info.Extra = map[string]string{}
+	info.Extra = map[string]string{
+		"go_ver": runtime.Version(),
+	}
 }
 
 func main() {
