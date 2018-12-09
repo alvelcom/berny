@@ -97,6 +97,11 @@ func (p *PKI) Produce(c *Context) ([]api.Product, error) {
 		return nil, diags
 	}
 
+	if !val.Type().IsObjectType() || !val.Type().HasAttribute("_x509") {
+		return nil, errors.New("producer: backend is not valid")
+	}
+
+	val = val.GetAttr("_x509")
 	if !val.Type().Equals(backend.X509Type) {
 		return nil, errors.New("producer: backend is not valid")
 	}

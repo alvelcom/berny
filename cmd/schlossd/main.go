@@ -217,7 +217,9 @@ func getBackendVar(b *backend.Map) cty.Value {
 	x509 := make(map[string]cty.Value)
 	for key, value := range b.X509 {
 		var tmp *backend.X509 = &value
-		x509[key] = cty.CapsuleVal(backend.X509Type, &tmp)
+		x509[key] = cty.ObjectVal(map[string]cty.Value{
+			"_x509": cty.CapsuleVal(backend.X509Type, &tmp),
+		})
 	}
 
 	return cty.ObjectVal(map[string]cty.Value{
