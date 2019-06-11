@@ -14,18 +14,15 @@ import (
 )
 
 var (
-	fServer = flag.String("server", "http://127.0.0.1:2326",
-		`Server to connect to`)
-	fDir = flag.String("dir", "/var/run/schloss",
-		`Directory for products`)
-	info api.MachineInfo
-)
+	fServer = flag.String("server", "http://127.0.0.1:2326", `Server to connect to`)
+	fDir    = flag.String("dir", "/var/run/schloss", `Directory for products`)
 
-func init() {
-	info.Extra = map[string]string{
-		"go_ver": runtime.Version(),
+	info = api.MachineInfo{
+		Extra: map[string]string{
+			"go_ver": runtime.Version(),
+		},
 	}
-}
+)
 
 func main() {
 	prepareFlags()
