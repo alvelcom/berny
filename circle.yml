@@ -8,5 +8,6 @@ jobs:
     steps:
       - checkout
       - run: go get -v -t -d ./...
+      - run: go get github.com/onsi/ginkgo/ginkgo
       - run: make build
       - run: make test
